@@ -35,7 +35,7 @@ S = 2.5
 vehicle = KinematicVehicle(track_width=20, dt=DT)
 sensor = LineSensorArray(sensor_distance=10, sensor_spacing=S)
 controller = LineController(
-    base_speed=10.0, kp=0.5, ki=0.01, kd=0.1, dt=DT,
+    base_speed=10.0, kp=0.5, ki=0.0, kd=0.1, dt=DT,
     sensor_spacing=S, threshold=200.0, max_speed=10.0, min_speed=-5.0
 )
 
