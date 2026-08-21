@@ -40,7 +40,7 @@ controller = LineController(
 )
 
 # 초기 차량 상태 [x, y, heading]
-state = np.array([2.0, 0.0, np.pi / 2])
+state = np.array([3.0, 0.0, np.pi / 2])
 
 # ============================================================
 # FSM 상태 및 화분 위치 정의

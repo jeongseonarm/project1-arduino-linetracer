@@ -32,7 +32,7 @@ class LineController:
     def control(self, sensor_values):
         r_L, r_C, r_R = sensor_values
 
-        # 밝기 값을 검정 라인 흡수량으로 변환
+        # 라인 흡수량 변환
         d_L = 1023.0 - r_L
         d_C = 1023.0 - r_C
         d_R = 1023.0 - r_R
@@ -40,18 +40,16 @@ class LineController:
         d_max = max(d_L, d_C, d_R)
         total = d_L + d_C + d_R
 
-        # 센서 감지 여부 판별 및 라인 오차 계산
+        # 오차 산출 및 라인 이탈 처리
         if d_max >= self.threshold:
             self.has_seen_line = True
             if total > 0.0:
-                # 좌우 센서 가중 평균을 이용한 오차 산출
                 error = (
                     -self.sensor_spacing * d_L + self.sensor_spacing * d_R
                 ) / total
             else:
                 error = 0.0
         else:
-            # 라인 이탈 시 직전 감지 방향으로 복귀 탐색
             if self.has_seen_line:
                 if self.previous_error > 0:
                     error = self.sensor_spacing
@@ -62,27 +60,30 @@ class LineController:
             else:
                 error = self.sensor_spacing
 
-            # 라인 이탈 시 적분값 초기화
             self.integral = 0.0
 
-        # 적분항 누적 및 Anti-windup
+        # 적분 누적 및 Anti-windup
         if d_max >= self.threshold:
             self.integral += error * self.dt
             self.integral = np.clip(self.integral, -10.0, 10.0)
 
-        # 미분항 및 PID 제어 보정량 계산
+        # PID 보정량 계산
         derivative = (error - self.previous_error) / self.dt
         correction = (
             (self.kp * error) + (self.ki * self.integral) + (self.kd * derivative)
         )
         self.previous_error = error
 
-        # 좌우 바퀴 제어 속도 산출 및 속도 범위 제한
-        v_L = np.clip(
-            self.base_speed + correction, self.min_speed, self.max_speed
-        )
-        v_R = np.clip(
-            self.base_speed - correction, self.min_speed, self.max_speed
-        )
+        # 오차 부호별 바퀴 속도 제어
+        if error < 0:
+            v_L = self.base_speed + correction
+            v_R = self.base_speed
+        else:
+            v_L = self.base_speed
+            v_R = self.base_speed - correction
+
+        # 속도 범위 제한
+        v_L = np.clip(v_L, self.min_speed, self.max_speed)
+        v_R = np.clip(v_R, self.min_speed, self.max_speed)
 
         return np.array([v_L, v_R])
